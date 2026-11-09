@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character.io — Воксельная арена</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<main id="viewport">
+  <canvas id="arena" tabindex="0" aria-label="Карта арены"></canvas>
+  <div id="labels" aria-hidden="true"></div>
+
+  <div id="game-hud" hidden>
+    <span id="network-ping" aria-label="Задержка до сервера" title="Задержка до сервера и обратно">Пинг —</span>
+    <span id="hit-marker" aria-hidden="true" hidden>×</span>
+    <header id="control-hud" class="plate scoreboard" hidden>
+      <div class="score blue"><span>Синие</span><strong id="blue-score">0</strong></div>
+      <div class="round"><span id="round-score"></span><div id="control-zones"></div></div>
+      <div class="score red"><span>Красные</span><strong id="red-score">0</strong></div>
+    </header>
+    <div class="game-actions">
+      <button id="fullscreen" class="quiet" type="button">Во весь экран</button>
+      <button id="disconnect" class="quiet" type="button">Выйти</button>
+    </div>
+    <canvas id="minimap" class="plate" width="240" height="156" aria-label="Мини-карта зон захвата" hidden></canvas>
+    <div id="match-notice" class="plate match-notice" hidden></div>
+    <footer class="battle-bar plate">
+      <div class="health">
+        <div class="health-label"><span id="player-hero"></span><strong id="player-hp"></strong></div>
+        <progress id="health-bar" aria-label="Здоровье" max="100" value="100"></progress>
+      </div>
+      <div class="ability"><kbd>ЛКМ</kbd><span>Атака</span></div>
+      <div class="ability"><kbd>ПКМ</kbd><span><strong id="ability-name"></strong><small id="ability-state"></small><small id="inspiration-state" hidden></small></span></div>
+    </footer>
+  </div>
+
+  <section id="round-results" aria-labelledby="results-title" hidden>
+    <div class="results-card plate">
+      <header>
+        <p id="results-round" class="eyebrow"></p>
+        <h2 id="results-title" tabindex="-1"></h2>
+        <p class="results-score"><strong class="blue" id="results-blue"></strong><span>:</span><strong class="red" id="results-red"></strong></p>
+      </header>
+      <div class="results-table">
+        <table aria-label="Статистика раунда">
+          <thead><tr><th scope="col">Игрок</th><th scope="col">Убийства</th><th scope="col">Смерти</th><th scope="col">Захваты</th><th scope="col">Усил. атаки</th></tr></thead>
+          <tbody id="results-players"></tbody>
+        </table>
+      </div>
+      <footer class="results-footer">
+        <p id="results-timer"></p>
+        <button id="results-exit" class="quiet" type="button">Выйти</button>
+      </footer>
+    </div>
+  </section>
+
+  <section id="lobby" aria-labelledby="game-title">
+    <div class="lobby-card">
+      <p class="eyebrow">ВОКСЕЛЬНАЯ АРЕНА</p>
+      <h1 id="game-title">Character<span>.io</span></h1>
+      <p class="intro">Захватывай точки. Приведи свою команду к 300 очкам.</p>
+
+      <form id="join">
+        <label for="nick" class="field-label">Имя игрока</label>
+        <input id="nick" maxlength="24" autocomplete="off" required>
+        <button id="choose-hero" type="button" class="class-button" aria-haspopup="dialog">
+          <span id="selected-icon" class="hero-icon" aria-hidden="true">♜</span>
+          <span><small>ТВОЙ КЛАСС</small><strong id="selected-hero">Рыцарь</strong></span>
+          <span class="class-action">Сменить <span aria-hidden="true">›</span></span>
+        </button>
+        <button id="connect" class="primary" disabled>В бой <span aria-hidden="true">→</span></button>
+        <p id="status" role="status">Загружаем арену…</p>
+      </form>
+      <p class="controls"><kbd>WASD</kbd> движение <kbd>ЛКМ</kbd> атака <kbd>ПКМ</kbd> способность</p>
+    </div>
+  </section>
+</main>
+
+<dialog id="hero-picker" aria-labelledby="picker-title">
+  <div class="picker-heading"><h2 id="picker-title">Выбери класс</h2><form method="dialog"><button class="quiet" aria-label="Закрыть">×</button></form></div>
+  <div class="hero-list">
+    <button type="button" data-hero="knight" data-ability="Рывок" aria-pressed="true" style="--hero:#f4c979"><span class="hero-icon" aria-hidden="true">♜</span><span><strong>Рыцарь</strong><small>Меч и быстрый рывок</small></span></button>
+    <button type="button" data-hero="archer" data-ability="Веер стрел" aria-pressed="false" style="--hero:#99cf8b"><span class="hero-icon" aria-hidden="true">➶</span><span><strong>Лучник</strong><small>Меткие выстрелы и веер стрел</small></span></button>
+    <button type="button" data-hero="mage" data-ability="Метеорит" aria-pressed="false" style="--hero:#cba8f8"><span class="hero-icon" aria-hidden="true">✦</span><span><strong>Маг</strong><small>Огненные снаряды и метеорит</small></span></button>
+    <button type="button" data-hero="rogue" data-ability="Невидимость" aria-pressed="false" style="--hero:#8ed5d3"><span class="hero-icon" aria-hidden="true">◈</span><span><strong>Разбойник</strong><small>Кинжал и невидимость</small></span></button>
+    <button type="button" data-hero="berserker" data-ability="Лечение" aria-pressed="false" style="--hero:#f5977c"><span class="hero-icon" aria-hidden="true">✹</span><span><strong>Берсерк</strong><small>Восстанавливает больше здоровья, когда ранен</small></span></button>
+    <button type="button" data-hero="bard" data-ability="Вдохновение" aria-pressed="false" style="--hero:#f5d783"><span class="hero-icon" aria-hidden="true">♫</span><span><strong>Бард</strong><small>Ускоряет атаки и бег ближайших союзников</small></span></button>
+  </div>
+</dialog>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

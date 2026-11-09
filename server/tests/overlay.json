@@ -1,0 +1,13 @@
+{
+  "Replace": {
+    "arena_test.go": "tests/testdata/server/arena_test.go",
+    "game/bots_test.go": "tests/testdata/game/bots_test.go",
+    "game/classes_test.go": "tests/testdata/game/classes_test.go",
+    "game/combat_test.go": "tests/testdata/game/combat_test.go",
+    "game/control_test.go": "tests/testdata/game/control_test.go",
+    "game/secondary_test.go": "tests/testdata/game/secondary_test.go",
+    "game/team_test.go": "tests/testdata/game/team_test.go",
+    "game/world_test.go": "tests/testdata/game/world_test.go",
+    "websocket_test.go": "tests/testdata/server/websocket_test.go"
+  }
+}
