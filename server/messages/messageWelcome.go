@@ -7,6 +7,7 @@ type ProjectilePrediction struct {
 }
 
 type Welcome struct {
+	CompactSnapshots          bool                            `json:"compactSnapshots,omitempty"`
 	ProjectilePrediction      map[string]ProjectilePrediction `json:"projectilePrediction"`
 	InspirationMoveMultiplier float64                         `json:"inspirationMoveMultiplier"`
 	WindupEnemyRadius         float64                         `json:"windupEnemyRadius"`

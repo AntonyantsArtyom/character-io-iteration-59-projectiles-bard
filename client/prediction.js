@@ -46,6 +46,19 @@ export function predictPlayer(player, pending, input, fraction, map, serverTick,
   return movePlayer(position, input, distanceAt(tick + 1) * fraction, map);
 }
 
+// The server sends these once per connection. Keep them available to the render buffer.
+export function mergeSnapshotEvents(snapshot, previous, tickRate) {
+  if (!previous || snapshot.round?.number !== previous.round?.number) return;
+  const oldest = snapshot.serverTick - 2 * tickRate;
+  snapshot.projectileEnds = [
+    ...(previous.projectileEnds ?? []).filter(end => end.tick > oldest),
+    ...(snapshot.projectileEnds ?? []),
+  ];
+  if (snapshot.round?.restartTick && snapshot.round.restartTick === previous.round?.restartTick) {
+    snapshot.roundResults ??= previous.roundResults;
+  }
+}
+
 const delayMs = 120;
 const maxFrames = 16;
 

@@ -1,6 +1,7 @@
 package messages
 
 type Join struct {
-	Nick string `json:"nick"`
-	Hero string `json:"hero"`
+	CompactSnapshots bool   `json:"compactSnapshots,omitempty"`
+	Nick             string `json:"nick"`
+	Hero             string `json:"hero"`
 }

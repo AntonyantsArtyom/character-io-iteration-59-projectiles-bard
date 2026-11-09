@@ -224,3 +224,27 @@ func TestRogueCoordinatesAreOnlySentToOwner(t *testing.T) {
 	send(t, rogue, map[string]any{"type": "action", "id": 2, "button": "primary", "aim": 0})
 	waitForSnapshot(t, viewer, func(s messages.Snapshot) bool { return len(s.Players) == 2 })
 }
+
+func TestCompactSnapshotKeepsEventsFromSkippedSnapshots(t *testing.T) {
+	snapshot := messages.Snapshot{
+		ServerTick: 12,
+		Round:      game.RoundState{RestartTick: 42},
+		ProjectileEnds: []game.ProjectileEnd{
+			{ID: 1, Tick: 8}, {ID: 2, Tick: 9}, {ID: 3, Tick: 12},
+		},
+		RoundResults: []messages.RoundResultPlayer{{ID: "player"}},
+	}
+	sent := sentSnapshot{tick: 8}
+	first := sent.compact(snapshot)
+	if len(first.ProjectileEnds) != 2 || first.ProjectileEnds[0].ID != 2 || len(first.RoundResults) != 1 {
+		t.Fatalf("skipping a snapshot lost an event: %+v", first)
+	}
+	sent = sentSnapshot{tick: 12, restartTick: 42}
+	next := sent.compact(snapshot)
+	if len(next.ProjectileEnds) != 0 || len(next.RoundResults) != 0 {
+		t.Fatalf("already sent events were repeated: %+v", next)
+	}
+	if len(snapshot.ProjectileEnds) != 3 || len(snapshot.RoundResults) != 1 {
+		t.Fatal("compaction modified data shared with other connections")
+	}
+}

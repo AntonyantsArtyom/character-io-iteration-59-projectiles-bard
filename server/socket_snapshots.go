@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -11,28 +12,67 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Position precision on the wire is one thousandth of a world unit.
+func wirePosition(value float64) float64 {
+	return math.Round(value*1000) / 1000
+}
+
+type sentSnapshot struct {
+	tick        uint64
+	restartTick uint64
+}
+
+// Filter at write time so replacing a queued snapshot cannot discard its events.
+func (sent sentSnapshot) compact(snapshot messages.Snapshot) messages.Snapshot {
+	first := 0
+	for first < len(snapshot.ProjectileEnds) && snapshot.ProjectileEnds[first].Tick <= sent.tick {
+		first++
+	}
+	snapshot.ProjectileEnds = snapshot.ProjectileEnds[first:]
+	if snapshot.Round.RestartTick == sent.restartTick {
+		snapshot.RoundResults = nil
+	}
+	return snapshot
+}
+
 func (s *Server) writeSnapshots(conn *websocket.Conn, c *client, done <-chan struct{}) {
 	defer conn.Close()
 	ping := time.NewTicker(pingInterval)
 	defer ping.Stop()
+	var sent sentSnapshot
+	sendPong := func(id uint64) error {
+		pong := struct {
+			Type string `json:"type"`
+			ID   uint64 `json:"id"`
+		}{Type: "pong", ID: id}
+		return writeJSON(conn, pong)
+	}
 	for {
+		// Give a pending pong priority over the next snapshot.
+		select {
+		case id := <-c.pongs:
+			if sendPong(id) != nil {
+				return
+			}
+		default:
+		}
 		select {
 		case <-done:
 			return
 		case <-s.arena.Done():
 			return
 		case id := <-c.pongs:
-			pong := struct {
-				Type string `json:"type"`
-				ID   uint64 `json:"id"`
-			}{Type: "pong", ID: id}
-			if writeJSON(conn, pong) != nil {
+			if sendPong(id) != nil {
 				return
 			}
 		case snapshot := <-c.snapshots:
+			if c.compactSnapshots {
+				snapshot = sent.compact(snapshot)
+			}
 			if writeJSON(conn, snapshot) != nil {
 				return
 			}
+			sent = sentSnapshot{tick: snapshot.ServerTick, restartTick: snapshot.Round.RestartTick}
 		case <-ping.C:
 			if conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeTimeout)) != nil {
 				return
@@ -62,7 +102,7 @@ func (s *Server) broadcast() {
 					})
 				}
 				wire := messages.Player{
-					ID: p.ID, Team: string(p.Team), Nick: nick, Bot: p.Bot, Hero: string(p.Hero), X: p.Position.X, Z: p.Position.Z, Aim: p.Aim,
+					ID: p.ID, Team: string(p.Team), Nick: nick, Bot: p.Bot, Hero: string(p.Hero), X: wirePosition(p.Position.X), Z: wirePosition(p.Position.Z), Aim: p.Aim,
 					HP: p.HP, MaxHP: p.MaxHP, RespawnTick: p.RespawnTick,
 					Attack: wireAttack(p.Attack), SecondaryAttack: wireAttack(p.SecondaryAttack),
 					InspirationCharges: p.InspirationCharges, InspirationSpeedUntil: p.InspirationSpeedUntil,
@@ -78,9 +118,8 @@ func (s *Server) broadcast() {
 		projectiles := make([]messages.Projectile, 0, len(snapshot.Projectiles))
 		for _, p := range snapshot.Projectiles {
 			projectiles = append(projectiles, messages.Projectile{
-				ID: p.ID, ActionID: p.ActionID, Team: string(p.Team), OwnerID: p.OwnerID, Hero: string(p.Hero), Aim: p.Aim, X: p.Position.X, Z: p.Position.Z,
-				Speed: p.Speed, PreviewDistance: p.PreviewDistance,
-				LaunchTick: p.LaunchTick, LaunchX: p.LaunchPosition.X, LaunchZ: p.LaunchPosition.Z,
+				ID: p.ID, ActionID: p.ActionID, Team: string(p.Team), OwnerID: p.OwnerID, Hero: string(p.Hero), Aim: p.Aim, X: wirePosition(p.Position.X), Z: wirePosition(p.Position.Z),
+				LaunchTick: p.LaunchTick, LaunchX: wirePosition(p.LaunchPosition.X), LaunchZ: wirePosition(p.LaunchPosition.Z),
 			})
 		}
 		meteors := make([]messages.Meteor, 0, len(snapshot.Meteors))

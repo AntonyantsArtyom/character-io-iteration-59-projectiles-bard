@@ -35,9 +35,10 @@ type Config struct {
 }
 
 type client struct {
-	nick      string
-	snapshots chan messages.Snapshot
-	pongs     chan uint64
+	compactSnapshots bool
+	nick             string
+	snapshots        chan messages.Snapshot
+	pongs            chan uint64
 }
 
 type Server struct {
@@ -82,7 +83,8 @@ func newWebSocketServer(a *Arena, cfg Config) (*Server, error) {
 	s := &Server{
 		arena: a,
 		upgrader: websocket.Upgrader{
-			HandshakeTimeout: joinTimeout,
+			HandshakeTimeout:  joinTimeout,
+			EnableCompression: true,
 			CheckOrigin: func(r *http.Request) bool {
 				origin := r.Header.Get("Origin")
 				if origin == "" || origin == cfg.AllowedOrigin {

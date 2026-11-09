@@ -1,5 +1,5 @@
 import { createScene, loadModels } from "./scene.js";
-import { createSnapshotBuffer, predictPlayer } from "./prediction.js";
+import { createSnapshotBuffer, mergeSnapshotEvents, predictPlayer } from "./prediction.js";
 const byId = id => document.getElementById(id);
 const canvas = byId('arena');
 const hitMarker = byId('hit-marker');
@@ -268,7 +268,7 @@ function connectToServer(event) {
   }
 
   connection.addEventListener('open', () => {
-    connection.send(JSON.stringify({ type: 'join', nick, hero }));
+    connection.send(JSON.stringify({ type: 'join', nick, hero, compactSnapshots: true }));
   });
   connection.addEventListener('message', event => {
     const message = JSON.parse(event.data);
@@ -366,6 +366,7 @@ function applySnapshot(message) {
     pending = [];
     queuedActions = [];
   }
+  if (map.compactSnapshots) mergeSnapshotEvents(message, snapshot, map.tickRate);
   snapshotBuffer.push(message, now);
   lastSnapshotAt = now;
   const meteors = message.meteors ?? [];

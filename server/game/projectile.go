@@ -5,17 +5,15 @@ import "math"
 const projectileHitRadius = PlayerRadius + 0.08
 
 type Projectile struct {
-	ActionID        uint64
-	LaunchTick      uint64
-	LaunchPosition  Vec2
-	Aim             float64
-	Speed           float64
-	PreviewDistance float64
-	Team            Team
-	ID              uint64
-	OwnerID         string
-	Hero            Hero
-	Position        Vec2
+	ActionID       uint64
+	LaunchTick     uint64
+	LaunchPosition Vec2
+	Aim            float64
+	Team           Team
+	ID             uint64
+	OwnerID        string
+	Hero           Hero
+	Position       Vec2
 }
 
 // ProjectileEnd is repeated in recent snapshots so dropped snapshots do not hide impacts.
@@ -56,12 +54,7 @@ type shot struct {
 func (w *World) Projectiles() []Projectile {
 	result := make([]Projectile, 0, len(w.projectiles))
 	for _, p := range w.projectiles {
-		preview := p.Projectile
-		preview.Speed = p.speed
-		_, xExit := rayAxis(p.Position.X, p.dir.X, w.bounds.Min.X, w.bounds.Max.X)
-		_, zExit := rayAxis(p.Position.Z, p.dir.Z, w.bounds.Min.Z, w.bounds.Max.Z)
-		preview.PreviewDistance = max(0, min(p.left, xExit, zExit, w.wallHit(p.Position, p.dir, p.left)))
-		result = append(result, preview)
+		result = append(result, p.Projectile)
 	}
 	return result
 }

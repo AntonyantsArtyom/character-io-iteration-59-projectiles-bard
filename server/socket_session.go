@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/flate"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+	_ = conn.SetCompressionLevel(flate.BestSpeed)
 	conn.SetReadLimit(1024)
 	_ = conn.SetReadDeadline(time.Now().Add(joinTimeout))
 
@@ -65,12 +67,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	welcome := s.welcome
 	welcome.PlayerID = id
+	welcome.CompactSnapshots = join.CompactSnapshots
 	welcome.Team = string(team)
 	welcome.MoveSpeed = hero.MoveSpeed()
 	if writeJSON(conn, welcome) != nil {
 		return
 	}
-	c := &client{nick: join.Nick, snapshots: make(chan messages.Snapshot, 1), pongs: make(chan uint64, 1)}
+	c := &client{nick: join.Nick, compactSnapshots: join.CompactSnapshots, snapshots: make(chan messages.Snapshot, 1), pongs: make(chan uint64, 1)}
 	s.mu.Lock()
 	s.clients[id] = c
 	s.mu.Unlock()
